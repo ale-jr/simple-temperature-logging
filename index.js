@@ -9,11 +9,25 @@ const app = express();
 
 app.use(cors());
 
+app.use("/static", express.static("static"));
+app.get("/", (req, resp, next) =>
+  resp.sendFile("static/index.html", { root: __dirname })
+);
+
+let lastTemp = {
+  temperature: null,
+  date: null,
+};
+
 app.post("/temperatures/:temp", (req, resp, _next) => {
   const { temp } = req.params;
   console.log("received temp", temp);
   const now = new Date();
   const line = `${now.toISOString()}${TEMPS_FILE_SEPARATOR}${temp}\n`;
+  lastTemp = {
+    temperature: +temp,
+    date: now,
+  };
   fs.appendFile(TEMPS_FILE, line, (err) => {
     if (err)
       return resp
@@ -45,6 +59,10 @@ app.get("/temperatures", (_req, resp, _next) => {
       });
     resp.json({ temperatures });
   });
+});
+
+app.get("/temperatures/latest", (_req, resp, next) => {
+  resp.json(lastTemp);
 });
 
 fs.stat(TEMPS_FILE, (err) => {
